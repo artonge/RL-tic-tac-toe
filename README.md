@@ -5,6 +5,21 @@ I choose golang because I am learning the language.
 
 I choose tic-tac-toe because in my foolish youth I coded an "AI" full of if that play tic-tac-toe. I wanted see how it would work with RL.
 
+## Installation
+`go get github.com/artonge/RL-tic-tac-toe`
+
+or
+
+`git clone github.com/artonge/RL-tic-tac-toe`
+
+then
+
+`go build`
+
+`./RL-tic-tac-toe [--plot]`
+
+`--plot` is for generating a plot in a png file
+
 ## Structure
 Two agents play against each other. For the first part of the program, both of them are learning to play as they play. We can see that their results are the same. But at the half, the second agent 'forget' what it has learned and also stop learning. It then become clear that one of them knows how to play and the other does not.
 
