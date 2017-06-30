@@ -22,12 +22,13 @@ then
 
 ## Structure
 Two agents play against each other. For the first part of the program, both of them are learning to play as they play. We can see that their results are the same. But at the half, the second agent 'forget' what it has learned and also stop learning. It then become clear that one of them knows how to play and the other does not.
+The learning is basic, each time an agent wins, it update the value of all the state it has played for the game. The value is a incremental mean.
 
 ## Output example
 | Both learning | o forget | o forget and stop learning |
 | :-----------: | :------: | :------------------------: |
-| **x** wins **52.1%** times | **x** wins **78.9%** times | **x** wins **99.2%** times |
-| **o** wins **47.3%** times | **x** wins **20.4%** times | **o** wins **0.66%** times |
+| **x** wins **52.1%** of the times | **x** wins **78.9%** of the times | **x** wins **99.2%** of the times |
+| **o** wins **47.3%** of the times | **x** wins **20.4%** of the times | **o** wins **0.66%** of the times |
 
 |||
 | - | - |
