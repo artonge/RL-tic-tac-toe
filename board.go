@@ -12,6 +12,18 @@ const (
 	o
 )
 
+func (c caseType) String() string {
+	switch c {
+	case e:
+		return " "
+	case x:
+		return "x"
+	case o:
+		return "o"
+	}
+	return ""
+}
+
 // Create a new empty board
 func newBoard() board {
 	return board{
@@ -22,10 +34,52 @@ func newBoard() board {
 }
 
 // Return true if two board are equals
-func (b board) isEqual(b2 board) bool {
+/*func (b board) isEqual(b2 board) bool {
+	for i := 0; i < 3; i++ {
+		if b.diff(b2) == 0 {
+			return true
+		}
+		b2 = b2.rotate()
+	}
+	return false
+}*/
+
+// Count the number of diff between two boards
+func (b board) diff(b2 board) int {
+	diff := 0
 	for i, l := range b {
 		for j := range l {
 			if b[i][j] != b2[i][j] {
+				diff++
+			}
+		}
+	}
+	return diff
+}
+
+// Return a copy of the board rotated by 90°
+func (b board) rotate() board {
+	bRot := newBoard()
+	// Transpose the board
+	for i, row := range b {
+		for j := range row {
+			bRot[i][j] = b[j][i]
+		}
+	}
+	// Reverse each rows
+	for _, row := range bRot {
+		tmp := row[0]
+		row[0] = row[2]
+		row[2] = tmp
+	}
+	return bRot
+}
+
+// Return true if the board is full
+func (b board) isFull() bool {
+	for _, row := range b {
+		for _, c := range row {
+			if c == e {
 				return false
 			}
 		}
@@ -33,16 +87,16 @@ func (b board) isEqual(b2 board) bool {
 	return true
 }
 
-// Return true if the board is full
-func (b board) isFull() bool {
+func (b board)countSign(s caseType) int {
+	count := 0
 	for _, l := range b {
 		for _, c := range l {
-			if c == e {
-				return false
+			if c == s {
+				count++
 			}
 		}
 	}
-	return true
+	return count
 }
 
 func (b board) getWinnerSign() caseType {
@@ -77,4 +131,8 @@ func (b board) copy() board {
 
 func (b board) String() string {
 	return fmt.Sprintf("%v\n%v\n%v", b[0], b[1], b[2])
+}
+
+func (b board) serialize() string {
+	return fmt.Sprintf("%v%v%v%v%v%v%v%v%v", b[0][0], b[0][1], b[0][2], b[1][0], b[1][1], b[1][2], b[2][0], b[2][1], b[2][2])
 }

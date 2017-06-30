@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"time"
+	"fmt"
 )
 
 // Associate to a board state a value
@@ -10,6 +11,10 @@ type state struct {
 	boardState board
 	value      float64
 	count      int
+}
+
+func (s state) String() string {
+	return fmt.Sprintf("%v	{value: %v - count: %v}\n---", s.boardState, s.value, s.count)
 }
 
 // Describe an action of the agent
@@ -20,10 +25,10 @@ type action struct {
 
 // An agent that will learn to play tic-tac-toe
 type agent struct {
-	states  []*state // States list of all the games
-	history []*state // States list of the current game
-	sign    caseType // The sign use to play
-	wins    int      // Number of wins
+	history    map[string]*state // States list of all the games
+	gameMoves  map[string]*state // States list of the current game
+	sign       caseType // The sign use to play
+	wins       int      // Number of wins
 }
 
 var r *rand.Rand
@@ -34,38 +39,38 @@ func init() {
 }
 
 // The policy
-func (a *agent) policy(s *state) action {
+func (a *agent) policy(b board) action {
 	// fmt.Println("	Running policy")
-	var nextState *state
+	maxVal := -1000.0
 	var nextAction action
-	posStates, posActions := a.possibleNextStates(s)
+	posStates, posActions := a.possibleNextStates(b)
+	// Get the hight value next state
 	for i, s := range posStates {
-		if s.value > s.value && r.Intn(100) > 20 {
-			nextState = s
+		if s.value > maxVal {
+			maxVal = s.value
 			nextAction = posActions[i]
 		}
 	}
-	if nextState == nil {
-		i := r.Intn(len(posStates))
-		nextAction = posActions[i]
+	// 10% of the time explore other actions
+	if r.Intn(100) < 10 {
+		nextAction = posActions[r.Intn(len(posActions))]
 	}
 	return nextAction
 }
 
 // Return the possible states from a given states
-func (a *agent) possibleNextStates(s *state) ([]*state, []action) {
-	// fmt.Println("	Getting possible next states from\n", s.boardState)
+func (a *agent) possibleNextStates(b board) ([]*state, []action) {
+	// fmt.Println("	Getting possible next states from:")
 	posStates := []*state{}
 	posActions := []action{}
 	var posBoard board
 	// Look for empty cases on the board
-	for i, l := range s.boardState {
+	for i, l := range b {
 		for j, c := range l {
 			if c == e {
 				// When a case is empty, add the associated state to posStates
-				posBoard = s.boardState.copy()
+				posBoard = b.copy()
 				posBoard[i][j] = a.sign
-				// fmt.Println("		", posBoard)
 				posStates = append(posStates, a.getState(posBoard))
 				posActions = append(posActions, action{i, j})
 			}
@@ -77,29 +82,30 @@ func (a *agent) possibleNextStates(s *state) ([]*state, []action) {
 // Called when we need the agent to play
 func (a *agent) play(b board) {
 	// fmt.Printf("%v plays\n", a.sign)
+	action := a.policy(b)
 	s := a.getState(b)
-	action := a.policy(s)
-	a.history = append(a.history, s)
+	a.gameMoves[s.boardState.serialize()] = s
 	b[action.i][action.j] = a.sign
 }
 
 // Called when the agent wins
 func (a *agent) win() {
 	a.wins++
-	a.updateHistory(1)
+	a.updateHistory(3)
 }
 
 // Called when the agent loses
 func (a *agent) lose() {
-	a.updateHistory(0)
+	a.updateHistory(-1)
 }
 
 func (a *agent) updateHistory(reward int) {
-	// fmt.Printf("	Update %v's history\n", a.sign)
-	for _, s := range a.history {
+	// fmt.Printf("	Update %v's gameMoves\n", a.sign)
+	for _, s := range a.gameMoves {
 		s.value, s.count = incrementalMean(s.value, reward, s.count)
+		fmt.Println(*s)
 	}
-	a.history = []*state{}
+	a.gameMoves = map[string]*state{}
 }
 
 // Return a new mean value given old mean, new a value and the count of values involved
@@ -108,34 +114,28 @@ func incrementalMean(oldMean float64, value int, k int) (float64, int) {
 	return (oldMean*float64(k) + float64(value)) / float64(k+1), k + 1
 }
 
-// Return a from the current board state
-// If the agent have allready encounter the state, return it
-// Else create a new one
+// Return a state from the history or create a new one
 func (a *agent) getState(b board) *state {
-	// fmt.Println("	Getting state for board")
+	 //fmt.Println("	Getting state for board:")
+	 //fmt.Println(b)
 	var s *state
-	// Search for an allready encounntered equivalent state
-	// if len(a.states) > 0 {
-	// 	fmt.Println("##########################")
-	// 	fmt.Println(b)
-	// 	fmt.Println("----")
-	// 	fmt.Println(a.states[0].boardState)
-	// }
-	for _, state := range a.states {
-		if state.boardState.isEqual(b) {
-			// fmt.Println("Found state and value is ", state.value)
-			// fmt.Println(b)
-			s = state
-			break
+	for i := 0; i < 4; i++ {
+		s, ok := a.history[b.serialize()];
+		if ok {
+			//fmt.Println("Found state:")
+			//fmt.Println(s)
+			return s
 		}
+		b = b.rotate()
 	}
-	// If state does not existe, create a new one and add it to states
-	if s == nil {
+	if s == nil {		
+		// If state does not existe, create a new one and add it to states
 		s = &state{
 			value:      0,
 			boardState: b.copy(),
 		}
-		a.states = append(a.states, s)
+		a.history[s.boardState.serialize()] = s		
+		//fmt.Println("	None found, creating one")
 	}
 	return s
 }
