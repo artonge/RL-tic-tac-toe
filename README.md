@@ -18,4 +18,4 @@ Two agents play against each other. For the first part of the program, both of t
 It does not take long for an agent to learn. I first, after the second agent forgot what it has learned, I was letting it learning again. The consequence was that the distinction between the two agents wins wasn't clear. That is why I also make the second agent to stop learning.
 
 ## TODO
-- [x] Make the output better. A graph showing the learning curves of the agents ?
+- [ ] Make the output better. A graph showing the learning curves of the agents ?
