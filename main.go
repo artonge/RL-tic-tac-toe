@@ -5,56 +5,74 @@ import (
 )
 
 func main() {
+	// Create the board and two agent
 	var b board
-	a1 := agent{history: map[string]*state{}, gameMoves: map[string]*state{}, sign: x}
-	a2 := agent{history: map[string]*state{}, gameMoves: map[string]*state{}, sign: o}
-	loopNb := 1
+	a1 := agent{history: make(map[string]*state), gameMoves: make(map[string]*state), sign: x}
+	a2 := agent{history: make(map[string]*state), gameMoves: make(map[string]*state), sign: o}
+	a1Win := 0
+	a2Win := 0
+	// Set the number of games to play and when a1 forget and stop to learn
+	loopNb := 10000
 	for i := 0; i < loopNb; i++ {
 		b = newBoard()
-		// At half, reset agent 1 and reset agent 2 wins count
-		if i == loopNb*(2/3) && false {
-			fmt.Printf("%v win %v times\n", a1.sign, a1.wins)
-			fmt.Printf("%v win %v times\n", a2.sign, a2.wins)
-			a1 = agent{history: map[string]*state{}, gameMoves: map[string]*state{}, sign: x}
-			a2.wins = 0
+		if i >= loopNb/2 {
+			// After half, always make a1 forget
+			a1.history = make(map[string]*state)
+			// At half, reset the agent's win count
+			if i == loopNb/2 {
+				// Display stats
+				fmt.Println("-------------")
+				fmt.Println("Both learning")
+				fmt.Println("-------------")
+				fmt.Printf("%v wins %v%% times\n", a1.sign, float64(a1Win)/float64(i)*100)
+				fmt.Printf("%v wins %v%% times\n", a2.sign, float64(a2Win)/float64(i)*100)
+				fmt.Println("====================================")
+				a1Win = 0
+				a2Win = 0
+			}
 		}
-		//fmt.Println(i, len(a2.history))
+		// Play the game until the board is full or there is a winner
+		// Alternate who begin to play
 		for true {
-			if b.isFull() || b.getWinnerSign() != e {
-				break
+			if i%2 == 0 {
+				if b.isFull() || b.getWinnerSign() != e {
+					break
+				}
+				a1.play(b)
+				if b.isFull() || b.getWinnerSign() != e {
+					break
+				}
+				a2.play(b)
+			} else {
+				if b.isFull() || b.getWinnerSign() != e {
+					break
+				}
+				a2.play(b)
+				if b.isFull() || b.getWinnerSign() != e {
+					break
+				}
+				a1.play(b)
 			}
-			a1.play(b)
-			if b.isFull() || b.getWinnerSign() != e{
-				break
-			}
-			a2.play(b)
 		}
+		// Get the winner and give rewards
 		winnerSign := b.getWinnerSign()
-		//fmt.Printf("%v	Winner is %v\n---\n", b, winnerSign)
 		if winnerSign == a1.sign {
-			a1.win()
-			a2.lose()
+			a1.feed(1)
+			a2.feed(0)
+			a1Win++
 		} else if winnerSign == a2.sign {
-			a1.lose()
-			a2.win()
+			a1.feed(0)
+			a2.feed(1)
+			a2Win++
 		} else {
-			a1.lose()
-			a2.lose()
+			a1.feed(0)
+			a2.feed(0)
 		}
 	}
-	fmt.Printf("%v win %v times\n", a1.sign, a1.wins)
-	fmt.Printf("%v win %v times\n", a2.sign, a2.wins)
-	fmt.Println(len(a1.history))
-	for _, s := range a1.history {
-		if s.boardState.countSign(e) == 8 {
-			fmt.Println(*s)
-		}
-	}
-	fmt.Println(len(a2.history))
-	for _, s := range a2.history {
-		if s.boardState.countSign(e) == 8 {
-			fmt.Println(*s)
-		}
-	}
-
+	// Display new stats
+	fmt.Println("------------------")
+	fmt.Println("x forget, o learns")
+	fmt.Println("------------------")
+	fmt.Printf("%v wins %v%% times\n", a1.sign, float64(a1Win)/float64(loopNb/2)*100)
+	fmt.Printf("%v wins %v%% times\n", a2.sign, float64(a2Win)/float64(loopNb/2)*100)
 }

@@ -1,36 +1,60 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
-	"fmt"
 )
 
-// Associate to a board state a value
+// ---
+// STATE DEFINITION
+// ---
+// Associate a board state to a value
 type state struct {
-	boardState board
-	value      float64
-	count      int
+	boardState board   // The board state
+	value      float64 // The value associated to the state
+	count      int     // The number of time the agent has seen this state
 }
 
+// Override String method
 func (s state) String() string {
 	return fmt.Sprintf("%v	{value: %v - count: %v}\n---", s.boardState, s.value, s.count)
 }
 
+// ---
+// ACTION DEFINITION
+// ---
 // Describe an action of the agent
-// aka where the agent put an x
+// aka where the agent put his sign
 type action struct {
 	i, j int
 }
 
+// ---
+// AGENT DEFINITION
+// ---
 // An agent that will learn to play tic-tac-toe
 type agent struct {
-	history    map[string]*state // States list of all the games
-	gameMoves  map[string]*state // States list of the current game
-	sign       caseType // The sign use to play
-	wins       int      // Number of wins
+	history   map[string]*state // States encountered during of all the games
+	gameMoves map[string]*state // States encountered during the current game
+	sign      boardCase         // The sign use to play
 }
 
+// Called when we need the agent to play
+func (a *agent) play(b board) {
+	// Save the current state in gameMoves
+	s := a.getState(b)
+	a.gameMoves[s.boardState.serialize()] = s
+	// Get the action from the policy
+	act := a.policy(b)
+	// Apply the action
+	b[act.i][act.j] = a.sign
+	// Save the new state in gameMoves
+	s = a.getState(b)
+	a.gameMoves[s.boardState.serialize()] = s
+}
+
+// Init random with time to have more randomness
 var r *rand.Rand
 
 func init() {
@@ -39,28 +63,27 @@ func init() {
 }
 
 // The policy
+// Given a state, it return an action
 func (a *agent) policy(b board) action {
-	// fmt.Println("	Running policy")
-	maxVal := -1000.0
+	maxVal := 0.0
 	var nextAction action
 	posStates, posActions := a.possibleNextStates(b)
-	// Get the hight value next state
+	// Get the hightest valued state from posStates
 	for i, s := range posStates {
 		if s.value > maxVal {
 			maxVal = s.value
 			nextAction = posActions[i]
 		}
 	}
-	// 10% of the time explore other actions
-	if r.Intn(100) < 10 {
+	// 10% of the time chose random actions
+	if float64(r.Intn(100)) < 10 {
 		nextAction = posActions[r.Intn(len(posActions))]
 	}
 	return nextAction
 }
 
-// Return the possible states from a given states
+// Return the possible next states from a given states and the action to get there
 func (a *agent) possibleNextStates(b board) ([]*state, []action) {
-	// fmt.Println("	Getting possible next states from:")
 	posStates := []*state{}
 	posActions := []action{}
 	var posBoard board
@@ -79,63 +102,35 @@ func (a *agent) possibleNextStates(b board) ([]*state, []action) {
 	return posStates, posActions
 }
 
-// Called when we need the agent to play
-func (a *agent) play(b board) {
-	// fmt.Printf("%v plays\n", a.sign)
-	action := a.policy(b)
-	s := a.getState(b)
-	a.gameMoves[s.boardState.serialize()] = s
-	b[action.i][action.j] = a.sign
-}
-
-// Called when the agent wins
-func (a *agent) win() {
-	a.wins++
-	a.updateHistory(3)
-}
-
-// Called when the agent loses
-func (a *agent) lose() {
-	a.updateHistory(-1)
-}
-
-func (a *agent) updateHistory(reward int) {
-	// fmt.Printf("	Update %v's gameMoves\n", a.sign)
+// Called at the end of the game to feed the agent with the reward
+func (a *agent) feed(reward int) {
 	for _, s := range a.gameMoves {
-		s.value, s.count = incrementalMean(s.value, reward, s.count)
-		fmt.Println(*s)
+		// Compute the incremental mean
+		s.value = (s.value*float64(s.count) + float64(reward)) / float64(s.count+1)
+		s.count++
 	}
-	a.gameMoves = map[string]*state{}
+	a.gameMoves = make(map[string]*state)
 }
 
-// Return a new mean value given old mean, new a value and the count of values involved
-func incrementalMean(oldMean float64, value int, k int) (float64, int) {
-	// fmt.Println("	Computing incremental mean")
-	return (oldMean*float64(k) + float64(value)) / float64(k+1), k + 1
-}
-
-// Return a state from the history or create a new one
+// Return a state from the history or create a new one it's a board the agent has never seen
 func (a *agent) getState(b board) *state {
-	 //fmt.Println("	Getting state for board:")
-	 //fmt.Println(b)
 	var s *state
+	var ok bool
+	// Check in history if agent has seen the board
 	for i := 0; i < 4; i++ {
-		s, ok := a.history[b.serialize()];
+		s, ok = a.history[b.serialize()]
 		if ok {
-			//fmt.Println("Found state:")
-			//fmt.Println(s)
 			return s
 		}
 		b = b.rotate()
 	}
-	if s == nil {		
-		// If state does not existe, create a new one and add it to states
+	if s == nil {
+		// If the board has never been seen, create a new one and add it to history
 		s = &state{
 			value:      0,
 			boardState: b.copy(),
 		}
-		a.history[s.boardState.serialize()] = s		
-		//fmt.Println("	None found, creating one")
+		a.history[s.boardState.serialize()] = s
 	}
 	return s
 }

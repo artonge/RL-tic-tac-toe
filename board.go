@@ -2,20 +2,21 @@ package main
 
 import "fmt"
 
-type caseType int
-type boardLine []caseType
-type board []boardLine
+// ---
+// BOARDCASE DEFINITION
+// ---
+type boardCase int
 
 const (
-	e caseType = iota
+	e boardCase = iota
 	x
 	o
 )
 
-func (c caseType) String() string {
+func (c boardCase) String() string {
 	switch c {
 	case e:
-		return " "
+		return "_"
 	case x:
 		return "x"
 	case o:
@@ -23,6 +24,16 @@ func (c caseType) String() string {
 	}
 	return ""
 }
+
+// ---
+// BOARDLINE DEFINITION
+// ---
+type boardLine []boardCase
+
+// ---
+// BOARD DEFINITION
+// ---
+type board []boardLine
 
 // Create a new empty board
 func newBoard() board {
@@ -32,17 +43,6 @@ func newBoard() board {
 		boardLine{e, e, e},
 	}
 }
-
-// Return true if two board are equals
-/*func (b board) isEqual(b2 board) bool {
-	for i := 0; i < 3; i++ {
-		if b.diff(b2) == 0 {
-			return true
-		}
-		b2 = b2.rotate()
-	}
-	return false
-}*/
 
 // Count the number of diff between two boards
 func (b board) diff(b2 board) int {
@@ -75,19 +75,8 @@ func (b board) rotate() board {
 	return bRot
 }
 
-// Return true if the board is full
-func (b board) isFull() bool {
-	for _, row := range b {
-		for _, c := range row {
-			if c == e {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func (b board)countSign(s caseType) int {
+// Return the number of occurence a sign in the board
+func (b board) countSign(s boardCase) int {
 	count := 0
 	for _, l := range b {
 		for _, c := range l {
@@ -99,7 +88,15 @@ func (b board)countSign(s caseType) int {
 	return count
 }
 
-func (b board) getWinnerSign() caseType {
+// Return true if the board is full
+func (b board) isFull() bool {
+	return b.countSign(e) == 0
+}
+
+// Return the winner
+// Need three signs aligned
+// If no winner, return e
+func (b board) getWinnerSign() boardCase {
 	// Check all lines and columns
 	for i, l := range b {
 		// Lines
@@ -121,6 +118,7 @@ func (b board) getWinnerSign() caseType {
 	return e
 }
 
+// Copy a board to a new board
 func (b board) copy() board {
 	newB := newBoard()
 	copy(newB[0], b[0])
@@ -129,10 +127,17 @@ func (b board) copy() board {
 	return newB
 }
 
+// Overide default String method
 func (b board) String() string {
 	return fmt.Sprintf("%v\n%v\n%v", b[0], b[1], b[2])
 }
 
+// Stringify a board
+// Example:
+// X - X
+// - O -
+// - - -
+// ==> "X-X--O---"
 func (b board) serialize() string {
 	return fmt.Sprintf("%v%v%v%v%v%v%v%v%v", b[0][0], b[0][1], b[0][2], b[1][0], b[1][1], b[1][2], b[2][0], b[2][1], b[2][2])
 }
